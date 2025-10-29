@@ -16,19 +16,11 @@ load_dotenv()
 class ProportionPipeline:
     """Two-stage pipeline: Photo -> Proportion Analysis -> Abstract Art."""
 
-    def __init__(
-        self,
-        api_key: str = None,
-        model: str = "anthropic/claude-3.5-sonnet"
-    ):
+    def __init__(self):
         """
         Initialize the pipeline.
-
-        Args:
-            api_key: OpenRouter API key for proportion extraction
-            model: Model to use for proportion extraction
         """
-        self.extractor = ProportionExtractor(api_key=api_key, model=model)
+        self.extractor = ProportionExtractor()
         self.drawer = ProportionDrawer()
 
     def process(
@@ -118,17 +110,6 @@ def main():
         help="Don't save intermediate proportion data"
     )
 
-    parser.add_argument(
-        "--api-key",
-        help="OpenRouter API key (or set OPENROUTER_API_KEY env var)"
-    )
-
-    parser.add_argument(
-        "-m", "--model",
-        default="anthropic/claude-3.5-sonnet",
-        help="Model to use (default: anthropic/claude-3.5-sonnet)"
-    )
-
     args = parser.parse_args()
 
     # Check input exists
@@ -138,7 +119,7 @@ def main():
 
     # Run pipeline
     try:
-        pipeline = ProportionPipeline(api_key=args.api_key, model=args.model)
+        pipeline = ProportionPipeline()
         pipeline.process(
             input_image=args.input_image,
             output_image=args.output,

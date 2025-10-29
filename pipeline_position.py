@@ -18,19 +18,15 @@ class PositionPipeline:
 
     def __init__(
         self,
-        api_key: str = None,
-        model: str = "anthropic/claude-3.5-sonnet",
         canvas_width: int = 1200
     ):
         """
         Initialize the pipeline.
 
         Args:
-            api_key: OpenRouter API key for position extraction
-            model: Model to use for position extraction
             canvas_width: Output canvas width in pixels (height auto-calculated)
         """
-        self.extractor = PositionExtractor(api_key=api_key, model=model, canvas_width=canvas_width)
+        self.extractor = PositionExtractor(canvas_width=canvas_width)
         self.drawer = PositionDrawer()
 
     def process(
@@ -128,17 +124,6 @@ def main():
     )
 
     parser.add_argument(
-        "--api-key",
-        help="OpenRouter API key (or set OPENROUTER_API_KEY env var)"
-    )
-
-    parser.add_argument(
-        "-m", "--model",
-        default="anthropic/claude-3.5-sonnet",
-        help="Model to use (default: anthropic/claude-3.5-sonnet)"
-    )
-
-    parser.add_argument(
         "-w", "--width",
         type=int,
         default=1200,
@@ -155,8 +140,6 @@ def main():
     # Run pipeline
     try:
         pipeline = PositionPipeline(
-            api_key=args.api_key,
-            model=args.model,
             canvas_width=args.width
         )
         pipeline.process(

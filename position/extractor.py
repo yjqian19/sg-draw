@@ -23,7 +23,7 @@ class PositionExtractor:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "anthropic/claude-3.5-sonnet",
+        model: Optional[str] = None,
         canvas_width: int = 1200
     ):
         """
@@ -31,7 +31,7 @@ class PositionExtractor:
 
         Args:
             api_key: OpenRouter API key (defaults to OPENROUTER_API_KEY env var)
-            model: Model to use (default: anthropic/claude-3.5-sonnet)
+            model: Model to use (defaults to MODEL env var or qwen/qwen3-vl-32b-instruct)
             canvas_width: Output canvas width in pixels (default: 1200)
         """
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
@@ -40,7 +40,7 @@ class PositionExtractor:
                 "API key required. Set OPENROUTER_API_KEY env var or pass api_key parameter."
             )
 
-        self.model = model
+        self.model = model or os.getenv("MODEL", "qwen/qwen3-vl-32b-instruct")
         self.canvas_width = canvas_width
         self.client = OpenAI(
             base_url="https://openrouter.ai/api/v1",

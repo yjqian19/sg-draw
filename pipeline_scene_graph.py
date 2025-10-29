@@ -16,19 +16,11 @@ load_dotenv()
 class SceneGraphPipeline:
     """Two-stage pipeline: Photo -> Scene Graph -> Abstract Art."""
 
-    def __init__(
-        self,
-        api_key: str = None,
-        model: str = "anthropic/claude-3.5-sonnet"
-    ):
+    def __init__(self):
         """
         Initialize the pipeline.
-
-        Args:
-            api_key: OpenRouter API key for scene graph extraction
-            model: Model to use for scene graph extraction
         """
-        self.extractor = SceneGraphExtractor(api_key=api_key, model=model)
+        self.extractor = SceneGraphExtractor()
         self.drawer = AbstractDrawer()
 
     def process(
@@ -122,17 +114,6 @@ def main():
         help="Don't save intermediate scene graph"
     )
 
-    parser.add_argument(
-        "--api-key",
-        help="OpenRouter API key (or set OPENROUTER_API_KEY env var)"
-    )
-
-    parser.add_argument(
-        "-m", "--model",
-        default="anthropic/claude-3.5-sonnet",
-        help="Model to use (default: anthropic/claude-3.5-sonnet)"
-    )
-
     args = parser.parse_args()
 
     # Check input exists
@@ -142,7 +123,7 @@ def main():
 
     # Run pipeline
     try:
-        pipeline = SceneGraphPipeline(api_key=args.api_key, model=args.model)
+        pipeline = SceneGraphPipeline()
         pipeline.process(
             input_image=args.input_image,
             output_image=args.output,
