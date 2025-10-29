@@ -1,31 +1,51 @@
 """
 Component 1: Scene Graph Extraction
 Analyzes an image and produces a structured scene graph with objects and relationships.
+Uses OpenRouter API for flexible model selection.
 """
 
 import json
 import base64
 from pathlib import Path
-from typing import Dict, List, Optional
-import anthropic
+from typing import Dict, Optional
 import os
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class SceneGraphExtractor:
-    """Extracts scene graphs from images using vision models."""
+    """Extracts scene graphs from images using OpenRouter API."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "qwen/qwen3-vl-32b-instruct"
+    ):
         """
-        Initialize the extractor with API credentials.
+        Initialize the extractor with OpenRouter API credentials.
 
         Args:
-            api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            api_key: OpenRouter API key (defaults to OPENROUTER_API_KEY env var)
+            model: Model to use (default: qwen/qwen3-vl-32b-instruct)
+                   Examples:
+                   - anthropic/claude-3.5-sonnet
+                   - openai/gpt-4o
+                   - google/gemini-pro-1.5
         """
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         if not self.api_key:
-            raise ValueError("API key required. Set ANTHROPIC_API_KEY or pass api_key parameter.")
+            raise ValueError(
+                "API key required. Set OPENROUTER_API_KEY env var or pass api_key parameter."
+            )
 
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.model = model
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=self.api_key,
+        )
 
     def _encode_image(self, image_path: str) -> tuple[str, str]:
         """
@@ -96,30 +116,29 @@ Guidelines:
 
 Return ONLY the JSON, nothing else."""
 
-        message = self.client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=2048,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": image_data
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{media_type};base64,{image_data}"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
                         }
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }]
+                    ]
+                }
+            ]
         )
 
         # Extract JSON from response
-        response_text = message.content[0].text.strip()
+        response_text = response.choices[0].message.content.strip()
 
         # Try to parse JSON, handling potential markdown wrapping
         if response_text.startswith('```'):
@@ -152,13 +171,18 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python scene_graph_extractor.py <image_path> [output_json_path]")
+        print("Usage: python scene_graph_extractor.py <image_path> [output_json_path] [model]")
+        print("\nExamples:")
+        print("  python scene_graph_extractor.py photo.jpg")
+        print("  python scene_graph_extractor.py photo.jpg graph.json")
+        print("  python scene_graph_extractor.py photo.jpg graph.json openai/gpt-4o")
         sys.exit(1)
 
     image_path = sys.argv[1]
     output_path = sys.argv[2] if len(sys.argv) > 2 else "scene_graph.json"
+    model = sys.argv[3] if len(sys.argv) > 3 else "anthropic/claude-3.5-sonnet"
 
-    extractor = SceneGraphExtractor()
+    extractor = SceneGraphExtractor(model=model)
     scene_graph = extractor.extract(image_path)
     extractor.save_scene_graph(scene_graph, output_path)
 

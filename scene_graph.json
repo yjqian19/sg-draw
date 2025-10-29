@@ -1,0 +1,60 @@
+{
+  "objects": [
+    {
+      "id": "o1",
+      "label": "building_facade"
+    },
+    {
+      "id": "o2",
+      "label": "windows"
+    },
+    {
+      "id": "o3",
+      "label": "sky"
+    },
+    {
+      "id": "o4",
+      "label": "power_lines"
+    },
+    {
+      "id": "o5",
+      "label": "brick_walls"
+    },
+    {
+      "id": "o6",
+      "label": "air_conditioning_units"
+    }
+  ],
+  "relations": [
+    {
+      "subject": "o2",
+      "predicate": "part_of",
+      "object": "o1"
+    },
+    {
+      "subject": "o4",
+      "predicate": "against",
+      "object": "o3"
+    },
+    {
+      "subject": "o6",
+      "predicate": "mounted_on",
+      "object": "o1"
+    },
+    {
+      "subject": "o5",
+      "predicate": "part_of",
+      "object": "o1"
+    },
+    {
+      "subject": "o1",
+      "predicate": "below",
+      "object": "o3"
+    },
+    {
+      "subject": "o2",
+      "predicate": "on",
+      "object": "o5"
+    }
+  ]
+}

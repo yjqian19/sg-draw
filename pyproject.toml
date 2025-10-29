@@ -2,8 +2,9 @@
 name = "sg-draw"
 version = "0.1.0"
 description = "Photo to abstract art via scene graph"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=0.40.0",
+    "openai>=2.2.0",
     "pillow>=10.0.0",
+    "python-dotenv>=1.0.1",
 ]

@@ -7,19 +7,28 @@ import argparse
 from pathlib import Path
 from scene_graph_extractor import SceneGraphExtractor
 from abstract_drawer import AbstractDrawer
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class PhotoToAbstractPipeline:
     """Two-stage pipeline: Photo -> Scene Graph -> Abstract Drawing."""
 
-    def __init__(self, api_key: str = None):
+    def __init__(
+        self,
+        api_key: str = None,
+        model: str = "anthropic/claude-3.5-sonnet"
+    ):
         """
         Initialize the pipeline.
 
         Args:
-            api_key: Anthropic API key for scene graph extraction
+            api_key: OpenRouter API key for scene graph extraction
+            model: Model to use for scene graph extraction
         """
-        self.extractor = SceneGraphExtractor(api_key=api_key)
+        self.extractor = SceneGraphExtractor(api_key=api_key, model=model)
         self.drawer = AbstractDrawer()
 
     def process(
@@ -115,7 +124,13 @@ def main():
 
     parser.add_argument(
         "--api-key",
-        help="Anthropic API key (or set ANTHROPIC_API_KEY env var)"
+        help="OpenRouter API key (or set OPENROUTER_API_KEY env var)"
+    )
+
+    parser.add_argument(
+        "-m", "--model",
+        default="anthropic/claude-3.5-sonnet",
+        help="Model to use (default: anthropic/claude-3.5-sonnet)"
     )
 
     args = parser.parse_args()
@@ -127,7 +142,7 @@ def main():
 
     # Run pipeline
     try:
-        pipeline = PhotoToAbstractPipeline(api_key=args.api_key)
+        pipeline = PhotoToAbstractPipeline(api_key=args.api_key, model=args.model)
         pipeline.process(
             input_image=args.input_image,
             output_image=args.output,
