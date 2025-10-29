@@ -1,8 +1,8 @@
 # sg-draw
 
-Two independent generative pipelines that transform photos into abstract art.
+Three independent generative pipelines that transform photos into abstract art.
 
-## Two Pipelines
+## Three Pipelines
 
 ### Pipeline 1: Relationship-Driven Abstract Art
 Visualizes spatial and functional relationships between objects.
@@ -15,8 +15,16 @@ Visualizes spatial and functional relationships between objects.
 Visualizes the visual composition and area proportions of objects.
 
 - **Focus**: Visual area proportions of each object instance
-- **Output**: Shapes sized by their visual area coverage
+- **Output**: Shapes sized by their visual area coverage, randomly placed
 - **Style**: Proportion-driven collage
+
+### Pipeline 3: Position-Based Abstract Art
+Visualizes objects at their actual positions with proportional sizes.
+
+- **Focus**: Object positions + proportions from original image
+- **Output**: Shapes at their original relative positions, sized by proportion
+- **Canvas**: Maintains input image aspect ratio (1200px width by default)
+- **Style**: Position-accurate composition
 
 ## Installation
 
@@ -64,6 +72,26 @@ python pipeline_proportion.py test01.jpg -o my_output.png -p my_proportion.json
 **Output:**
 - `output/proportion.json` - Each object instance with its visual area proportion
 - `output/proportion.png` - Abstract art with sizes representing proportions
+
+### Pipeline 3: Position
+
+```bash
+# Basic usage
+python pipeline_position.py test01.jpg
+
+# Use a different model
+python pipeline_position.py test01.jpg --model openai/gpt-4o
+
+# Custom output width (height auto-calculated to maintain aspect ratio)
+python pipeline_position.py test01.jpg --width 1600
+
+# Custom output paths
+python pipeline_position.py test01.jpg -o my_output.png -p my_position.json
+```
+
+**Output:**
+- `output/position.json` - Each object with proportion and position coordinates
+- `output/position.png` - Abstract art with shapes at their actual positions
 
 ## Supported Models
 
@@ -129,9 +157,37 @@ Example output:
 - Random placement (overlapping allowed)
 - Color-coded by object category
 
+### Pipeline 3: Position → Abstract Art
+
+**Stage 1: Position Analysis**
+- Input: Photo
+- Process: Identify each object instance with proportion AND position
+- Output: JSON with proportions and relative coordinates (0.0 to 1.0)
+
+Example output:
+```json
+{
+  "image_dimensions": {
+    "original": {"width": 3000, "height": 2000},
+    "output": {"width": 1200, "height": 800}
+  },
+  "objects": [
+    {"id": "1", "label": "window", "proportion": 0.02, "position": {"x": 0.3, "y": 0.5}},
+    {"id": "2", "label": "window", "proportion": 0.02, "position": {"x": 0.7, "y": 0.5}}
+  ]
+}
+```
+
+**Stage 2: Abstract Drawing**
+- Each object becomes a shape at its actual position
+- Shape area = canvas area × proportion
+- Position = relative coordinates converted to absolute pixels
+- Canvas maintains input image aspect ratio
+- Color-coded by object category
+
 ## Visual Encoding Rules
 
-Both pipelines use the same color and shape mapping:
+All three pipelines use the same color and shape mapping:
 
 **Colors:**
 - People/animals → warm colors (red, orange, yellow)
@@ -155,9 +211,13 @@ sg-draw/
 ├── proportion/              # Pipeline 2
 │   ├── extractor.py         # Proportion analysis
 │   └── drawer.py            # Proportion-driven drawing
+├── position/                # Pipeline 3
+│   ├── extractor.py         # Position + proportion analysis
+│   └── drawer.py            # Position-based drawing
 ├── output/                  # Generated outputs (JSON and PNG)
 ├── pipeline_scene_graph.py  # Pipeline 1 entry point
 ├── pipeline_proportion.py   # Pipeline 2 entry point
+├── pipeline_position.py     # Pipeline 3 entry point
 ├── test01.jpg              # Test images
 ├── .env                    # API configuration
 ├── pyproject.toml          # UV dependencies
