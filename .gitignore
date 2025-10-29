@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Output files
+scene_graph.json
+output_abstract.png
+*.png
+*.json
+
+# API keys
+.env
