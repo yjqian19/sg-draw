@@ -1,5 +1,5 @@
 """
-Component 2: Abstract Drawing Generation
+Abstract Drawing Generation
 Generates minimalist abstract drawings from scene graphs using color and geometry.
 """
 
@@ -8,7 +8,7 @@ import math
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from dataclasses import dataclass
 
 
@@ -163,8 +163,6 @@ class AbstractDrawer:
 
         # Build relationship graph
         on_top_of = {}  # maps object_id -> list of subjects on top
-        next_to_pairs = []
-        connections = {}  # maps object_id -> list of connected objects
 
         for rel in relations:
             subj = rel['subject']
@@ -175,15 +173,6 @@ class AbstractDrawer:
                 if obj not in on_top_of:
                     on_top_of[obj] = []
                 on_top_of[obj].append(subj)
-            elif pred in ['next_to', 'beside']:
-                next_to_pairs.append((subj, obj))
-            elif pred in ['holding', 'using', 'wearing']:
-                if subj not in connections:
-                    connections[subj] = []
-                if obj not in connections:
-                    connections[obj] = []
-                connections[subj].append(obj)
-                connections[obj].append(subj)
 
         # Determine base objects (those on bottom / supporting others)
         obj_ids = {o['id'] for o in objects}
@@ -274,7 +263,7 @@ class AbstractDrawer:
 
     def _draw_shape(self, draw: ImageDraw.Draw, layout: NodeLayout):
         """
-        Draw a shape on the canvas.
+        Draw a shape on the canvas (no outline).
 
         Args:
             draw: PIL ImageDraw object
@@ -287,61 +276,18 @@ class AbstractDrawer:
             radius = min(w, h) / 2
             draw.ellipse(
                 [x - radius, y - radius, x + radius, y + radius],
-                fill=layout.color,
-                outline=(0, 0, 0),
-                width=3
+                fill=layout.color
             )
         elif layout.shape == 'square':
             side = min(w, h)
             draw.rectangle(
                 [x - side/2, y - side/2, x + side/2, y + side/2],
-                fill=layout.color,
-                outline=(0, 0, 0),
-                width=3
+                fill=layout.color
             )
         else:  # rectangle
             draw.rectangle(
                 [x - w/2, y - h/2, x + w/2, y + h/2],
-                fill=layout.color,
-                outline=(0, 0, 0),
-                width=3
-            )
-
-    def _draw_relation(self, draw: ImageDraw.Draw, layouts: List[NodeLayout],
-                      relation: Dict):
-        """
-        Draw a relationship between objects.
-
-        Args:
-            draw: PIL ImageDraw object
-            layouts: List of all node layouts
-            relation: Relation dictionary
-        """
-        subj_id = relation['subject']
-        obj_id = relation['object']
-        predicate = relation['predicate']
-
-        # Find layouts
-        subj_layout = next((l for l in layouts if l.id == subj_id), None)
-        obj_layout = next((l for l in layouts if l.id == obj_id), None)
-
-        if not subj_layout or not obj_layout:
-            return
-
-        # Draw connection based on predicate
-        if predicate in ['holding', 'using', 'wearing']:
-            # Bold line
-            draw.line(
-                [(subj_layout.x, subj_layout.y), (obj_layout.x, obj_layout.y)],
-                fill=(0, 0, 0),
-                width=5
-            )
-        elif predicate not in ['on_top_of', 'next_to']:
-            # Thin line for other relations
-            draw.line(
-                [(subj_layout.x, subj_layout.y), (obj_layout.x, obj_layout.y)],
-                fill=(100, 100, 100),
-                width=2
+                fill=layout.color
             )
 
     def draw(self, scene_graph: Dict, output_path: str):
@@ -359,17 +305,12 @@ class AbstractDrawer:
         # Compute layout
         layouts = self._compute_layout(scene_graph)
 
-        # Draw relations first (so they appear behind shapes)
-        for relation in scene_graph['relations']:
-            self._draw_relation(draw, layouts, relation)
-
-        # Draw shapes
+        # Draw shapes (no connection lines)
         for layout in layouts:
             self._draw_shape(draw, layout)
 
         # Draw labels
         for layout in layouts:
-            # Use default font
             text = layout.label
             bbox = draw.textbbox((0, 0), text)
             text_width = bbox[2] - bbox[0]
@@ -397,17 +338,3 @@ class AbstractDrawer:
             scene_graph = json.load(f)
 
         self.draw(scene_graph, output_path)
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python abstract_drawer.py <scene_graph.json> [output_image.png]")
-        sys.exit(1)
-
-    scene_graph_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "abstract_drawing.png"
-
-    drawer = AbstractDrawer()
-    drawer.draw_from_file(scene_graph_path, output_path)

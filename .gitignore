@@ -5,3 +5,6 @@ __pycache__/
 
 # API keys
 .env
+
+# Generated outputs
+output/

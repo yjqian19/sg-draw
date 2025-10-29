@@ -1,6 +1,6 @@
 """
-Component 1: Scene Graph Extraction
-Analyzes an image and produces a structured scene graph with objects and relationships.
+Proportion Extraction
+Analyzes an image and identifies each object instance with its visual area proportion.
 Uses OpenRouter API for flexible model selection.
 """
 
@@ -16,20 +16,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class SceneGraphExtractor:
-    """Extracts scene graphs from images using OpenRouter API."""
+class ProportionExtractor:
+    """Extracts object proportions from images using OpenRouter API."""
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "qwen/qwen3-vl-32b-instruct"
+        model: str = "anthropic/claude-3.5-sonnet"
     ):
         """
         Initialize the extractor with OpenRouter API credentials.
 
         Args:
             api_key: OpenRouter API key (defaults to OPENROUTER_API_KEY env var)
-            model: Model to use (default: qwen/qwen3-vl-32b-instruct)
+            model: Model to use (default: anthropic/claude-3.5-sonnet)
                    Examples:
                    - anthropic/claude-3.5-sonnet
                    - openai/gpt-4o
@@ -80,39 +80,42 @@ class SceneGraphExtractor:
 
     def extract(self, image_path: str) -> Dict:
         """
-        Extract scene graph from an image.
+        Extract object proportions from an image.
 
         Args:
             image_path: Path to the input image
 
         Returns:
-            Scene graph dictionary with 'objects' and 'relations'
+            Proportion data dictionary with list of objects
         """
         image_data, media_type = self._encode_image(image_path)
 
-        prompt = """Analyze this image and produce a structured scene graph in JSON format.
+        prompt = """Analyze this image and identify EVERY object instance with its visual area proportion.
 
 Your response must be ONLY valid JSON (no markdown, no explanations).
 
-Identify all significant objects in the image and their spatial/functional relationships.
+Requirements:
+1. List each object instance separately (if there are 8 windows, list 8 window entries)
+2. Estimate the visual area proportion for each object (0.0 to 1.0)
+3. All proportions should sum to approximately 1.0
+4. Use simple numeric IDs: "1", "2", "3", etc.
 
 Format:
 {
   "objects": [
-    {"id": "o1", "label": "person"},
-    {"id": "o2", "label": "laptop"}
-  ],
-  "relations": [
-    {"subject": "o1", "predicate": "using", "object": "o2"}
+    {"id": "1", "label": "sky", "proportion": 0.40},
+    {"id": "2", "label": "building", "proportion": 0.35},
+    {"id": "3", "label": "window", "proportion": 0.02},
+    {"id": "4", "label": "window", "proportion": 0.02}
   ]
 }
 
 Guidelines:
-- Use clear object labels (person, dog, car, tree, building, cup, phone, etc.)
-- Use intuitive predicates: on_top_of, next_to, holding, using, wearing, inside, in_front_of, behind, above, below
-- Include 3-10 objects (most prominent)
-- Include all meaningful relationships between objects
-- Use simple IDs: o1, o2, o3, etc.
+- Be comprehensive - include all visible objects
+- Proportions represent visual area coverage (not importance)
+- Use clear, simple labels
+- If there are multiple instances of the same object type, list each one separately
+- Each object should have its individual proportion
 
 Return ONLY the JSON, nothing else."""
 
@@ -146,45 +149,27 @@ Return ONLY the JSON, nothing else."""
             lines = response_text.split('\n')
             response_text = '\n'.join(lines[1:-1] if len(lines) > 2 else lines)
 
-        scene_graph = json.loads(response_text)
+        proportion_data = json.loads(response_text)
 
         # Validate structure
-        if 'objects' not in scene_graph or 'relations' not in scene_graph:
-            raise ValueError("Invalid scene graph format returned by API")
+        if 'objects' not in proportion_data:
+            raise ValueError("Invalid proportion data format returned by API")
 
-        return scene_graph
+        # Validate that each object has required fields
+        for obj in proportion_data['objects']:
+            if 'id' not in obj or 'label' not in obj or 'proportion' not in obj:
+                raise ValueError(f"Object missing required fields: {obj}")
 
-    def save_scene_graph(self, scene_graph: Dict, output_path: str):
+        return proportion_data
+
+    def save_proportion_data(self, proportion_data: Dict, output_path: str):
         """
-        Save scene graph to JSON file.
+        Save proportion data to JSON file.
 
         Args:
-            scene_graph: Scene graph dictionary
+            proportion_data: Proportion data dictionary
             output_path: Path to save JSON file
         """
         with open(output_path, 'w') as f:
-            json.dump(scene_graph, f, indent=2)
-        print(f"Scene graph saved to {output_path}")
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python scene_graph_extractor.py <image_path> [output_json_path] [model]")
-        print("\nExamples:")
-        print("  python scene_graph_extractor.py photo.jpg")
-        print("  python scene_graph_extractor.py photo.jpg graph.json")
-        print("  python scene_graph_extractor.py photo.jpg graph.json openai/gpt-4o")
-        sys.exit(1)
-
-    image_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "scene_graph.json"
-    model = sys.argv[3] if len(sys.argv) > 3 else "anthropic/claude-3.5-sonnet"
-
-    extractor = SceneGraphExtractor(model=model)
-    scene_graph = extractor.extract(image_path)
-    extractor.save_scene_graph(scene_graph, output_path)
-
-    print("\nExtracted Scene Graph:")
-    print(json.dumps(scene_graph, indent=2))
+            json.dump(proportion_data, f, indent=2)
+        print(f"Proportion data saved to {output_path}")

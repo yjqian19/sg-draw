@@ -1,20 +1,20 @@
 """
-Main Pipeline: Photo to Abstract Art
-Connects scene graph extraction and abstract drawing generation.
+Pipeline 1: Scene Graph to Abstract Art
+Relationship-driven abstract art generation from scene graphs.
 """
 
 import argparse
 from pathlib import Path
-from scene_graph_extractor import SceneGraphExtractor
-from abstract_drawer import AbstractDrawer
+from scene_graph.extractor import SceneGraphExtractor
+from scene_graph.drawer import AbstractDrawer
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
 
-class PhotoToAbstractPipeline:
-    """Two-stage pipeline: Photo -> Scene Graph -> Abstract Drawing."""
+class SceneGraphPipeline:
+    """Two-stage pipeline: Photo -> Scene Graph -> Abstract Art."""
 
     def __init__(
         self,
@@ -34,9 +34,9 @@ class PhotoToAbstractPipeline:
     def process(
         self,
         input_image: str,
-        output_image: str = "output_abstract.png",
+        output_image: str = "output/scene_graph.png",
         save_scene_graph: bool = True,
-        scene_graph_path: str = "scene_graph.json"
+        scene_graph_path: str = "output/scene_graph.json"
     ) -> dict:
         """
         Run the full pipeline.
@@ -51,7 +51,7 @@ class PhotoToAbstractPipeline:
             Scene graph dictionary
         """
         print("=" * 60)
-        print("PHOTO TO ABSTRACT ART PIPELINE")
+        print("SCENE GRAPH PIPELINE - Relationship-Driven Abstract Art")
         print("=" * 60)
 
         # Stage 1: Extract scene graph
@@ -106,14 +106,14 @@ def main():
 
     parser.add_argument(
         "-o", "--output",
-        default="output_abstract.png",
-        help="Path for output abstract drawing (default: output_abstract.png)"
+        default="output/scene_graph.png",
+        help="Path for output abstract drawing (default: output/scene_graph.png)"
     )
 
     parser.add_argument(
         "-s", "--scene-graph",
-        default="scene_graph.json",
-        help="Path to save scene graph JSON (default: scene_graph.json)"
+        default="output/scene_graph.json",
+        help="Path to save scene graph JSON (default: output/scene_graph.json)"
     )
 
     parser.add_argument(
@@ -142,7 +142,7 @@ def main():
 
     # Run pipeline
     try:
-        pipeline = PhotoToAbstractPipeline(api_key=args.api_key, model=args.model)
+        pipeline = SceneGraphPipeline(api_key=args.api_key, model=args.model)
         pipeline.process(
             input_image=args.input_image,
             output_image=args.output,
