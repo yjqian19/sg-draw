@@ -117,6 +117,8 @@ Guidelines:
 
 Return ONLY the JSON, nothing else."""
 
+        print(f"  Using model: {self.model}")
+
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -135,11 +137,19 @@ Return ONLY the JSON, nothing else."""
                         }
                     ]
                 }
-            ]
+            ],
+            max_tokens=4096,
+            temperature=0.3
         )
 
         # Extract JSON from response
-        response_text = response.choices[0].message.content.strip()
+        response_text = response.choices[0].message.content
+        if response_text is None:
+            raise ValueError("Model returned None/empty response")
+
+        response_text = response_text.strip()
+
+        print(f"  Response length: {len(response_text)} characters")
 
         # Try to parse JSON, handling potential markdown wrapping
         if response_text.startswith('```'):
@@ -147,7 +157,14 @@ Return ONLY the JSON, nothing else."""
             lines = response_text.split('\n')
             response_text = '\n'.join(lines[1:-1] if len(lines) > 2 else lines)
 
-        scene_graph = json.loads(response_text)
+        try:
+            scene_graph = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"\n[DEBUG] Failed to parse JSON. Error: {e}")
+            print(f"[DEBUG] Model used: {self.model}")
+            print(f"[DEBUG] Response length: {len(response_text)} characters")
+            print(f"[DEBUG] Full raw response:\n{response_text}")
+            raise ValueError(f"Failed to parse JSON response from model: {e}")
 
         # Validate structure
         if 'objects' not in scene_graph or 'relations' not in scene_graph:
