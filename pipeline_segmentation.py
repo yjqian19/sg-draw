@@ -30,26 +30,37 @@ class SegmentationPipeline:
     def process(
         self,
         input_image: str,
-        output_image: str = "output/segmentation.png",
+        output_image: str | None = None,
         save_data: bool = True,
-        data_path: str = "output/segmentation.json",
+        data_path: str | None = None,
         save_segmap: bool = True,
-        segmap_path: str = "output/segmentation_map.png"
+        segmap_path: str | None = None
     ) -> dict:
         """
         Run the pipeline.
 
         Args:
             input_image: Input image path
-            output_image: Output image path
+            output_image: Output image path (optional, auto-generated from input name if None)
             save_data: Whether to save segmentation data
-            data_path: Path to save data JSON
+            data_path: Path to save data JSON (optional, auto-generated if None)
             save_segmap: Whether to save segmentation map visualization
-            segmap_path: Path to save segmentation map
+            segmap_path: Path to save segmentation map (optional, auto-generated if None)
 
         Returns:
             Segmentation data dictionary
         """
+        # Auto-generate output paths from input image name
+        input_path = Path(input_image)
+        input_stem = input_path.stem  # filename without extension
+
+        if output_image is None:
+            output_image = f"output/{input_stem}_segmentation.png"
+        if data_path is None:
+            data_path = f"output/{input_stem}_segmentation.json"
+        if segmap_path is None:
+            segmap_path = f"output/{input_stem}_segmentation_map.png"
+
         print("=" * 60)
         print("INSTANCE SEGMENTATION PIPELINE")
         print("=" * 60)
@@ -113,14 +124,14 @@ def main():
 
     parser.add_argument(
         "-o", "--output",
-        default="output/segmentation.png",
-        help="Output image path (default: output/segmentation.png)"
+        default=None,
+        help="Output image path (default: output/{input_name}_segmentation.png)"
     )
 
     parser.add_argument(
         "-d", "--data",
-        default="output/segmentation.json",
-        help="Output data path (default: output/segmentation.json)"
+        default=None,
+        help="Output data path (default: output/{input_name}_segmentation.json)"
     )
 
     parser.add_argument(
@@ -130,8 +141,8 @@ def main():
 
     parser.add_argument(
         "-m", "--segmap",
-        default="output/segmentation_map.png",
-        help="Path to save segmentation map (default: output/segmentation_map.png)"
+        default=None,
+        help="Path to save segmentation map (default: output/{input_name}_segmentation_map.png)"
     )
 
     parser.add_argument(
