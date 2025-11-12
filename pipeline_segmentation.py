@@ -8,24 +8,41 @@ import argparse
 from pathlib import Path
 from segmentation.extractor import SegmentationExtractor
 from segmentation.drawer import SegmentationDrawer
+from segmentation.drawer_dots import DotPatternDrawer
 
 
 class SegmentationPipeline:
-    """Two-stage pipeline: Photo -> Instance Segmentation -> Circle Art."""
+    """Two-stage pipeline: Photo -> Instance Segmentation -> Abstract Art."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(
+        self,
+        model_name: str | None = None,
+        drawer_type: str = "circle",
+        dot_size: int = 8,
+        dot_density: float = 0.3
+    ):
         """
         Initialize pipeline.
 
         Args:
             model_name: Hugging Face model name (optional)
                 Default: facebook/mask2former-swin-small-coco-instance
+            drawer_type: Type of drawer ("circle" or "dots")
+            dot_size: Size of dots for dot pattern drawer (default: 8)
+            dot_density: Density of dots for dot pattern drawer (default: 0.3)
         """
         if model_name:
             self.extractor = SegmentationExtractor(model_name=model_name)
         else:
             self.extractor = SegmentationExtractor()
-        self.drawer = SegmentationDrawer()
+
+        # Select drawer based on type
+        if drawer_type == "dots":
+            self.drawer = DotPatternDrawer(dot_size=dot_size, dot_density=dot_density)
+            self.drawer_type = "dots"
+        else:
+            self.drawer = SegmentationDrawer()
+            self.drawer_type = "circle"
 
     def process(
         self,
@@ -34,7 +51,8 @@ class SegmentationPipeline:
         save_data: bool = True,
         data_path: str | None = None,
         save_segmap: bool = True,
-        segmap_path: str | None = None
+        segmap_path: str | None = None,
+        dot_pattern: str = "random"
     ) -> dict:
         """
         Run the pipeline.
@@ -50,16 +68,42 @@ class SegmentationPipeline:
         Returns:
             Segmentation data dictionary
         """
-        # Auto-generate output paths from input image name
+        # Auto-generate output paths from input image name and parameters
         input_path = Path(input_image)
         input_stem = input_path.stem  # filename without extension
 
-        if output_image is None:
-            output_image = f"output/{input_stem}_segmentation.png"
+        # JSON and segmentation_map use fixed names (no parameters)
         if data_path is None:
             data_path = f"output/{input_stem}_segmentation.json"
         if segmap_path is None:
             segmap_path = f"output/{input_stem}_segmentation_map.png"
+
+        # Only the drawing output includes parameters in filename
+        if output_image is None:
+            # Build suffix based on drawer type and parameters
+            suffix_parts = []
+
+            # Add drawer type
+            if self.drawer_type == "dots":
+                suffix_parts.append("dots")
+
+                # Add pattern if not default
+                if dot_pattern != "random":
+                    suffix_parts.append(dot_pattern)
+
+                # Add dot size if not default
+                if hasattr(self.drawer, 'dot_size') and self.drawer.dot_size != 8:
+                    suffix_parts.append(f"size{self.drawer.dot_size}")
+
+                # Add density if not default
+                if hasattr(self.drawer, 'dot_density') and self.drawer.dot_density != 0.3:
+                    suffix_parts.append(f"d{self.drawer.dot_density}")
+            else:
+                suffix_parts.append("circle")
+
+            # Join suffix parts
+            suffix = "_".join(suffix_parts)
+            output_image = f"output/{input_stem}_{suffix}.png"
 
         print("=" * 60)
         print("INSTANCE SEGMENTATION PIPELINE")
@@ -97,8 +141,14 @@ class SegmentationPipeline:
 
         # Stage 2: Draw
         print(f"\n[Stage 2] Drawing abstract art...")
+        print(f"  Drawer type: {self.drawer_type}")
         print(f"  Output: {output_image}")
-        self.drawer.draw(instance_data, output_image)
+
+        # Draw with appropriate method
+        if self.drawer_type == "dots":
+            self.drawer.draw(instance_data, output_image, pattern=dot_pattern)
+        else:
+            self.drawer.draw(instance_data, output_image)
 
         print("\n" + "=" * 60)
         print("COMPLETE!")
@@ -151,6 +201,34 @@ def main():
         help="Don't save segmentation map visualization"
     )
 
+    parser.add_argument(
+        "--drawer",
+        choices=["circle", "dots"],
+        default="circle",
+        help="Drawer type: 'circle' for solid circles, 'dots' for dot pattern (default: circle)"
+    )
+
+    parser.add_argument(
+        "--dot-size",
+        type=int,
+        default=8,
+        help="Size of dots for dot pattern drawer (default: 8)"
+    )
+
+    parser.add_argument(
+        "--dot-density",
+        type=float,
+        default=0.3,
+        help="Density of dots for dot pattern drawer, 0.1-1.0 (default: 0.3)"
+    )
+
+    parser.add_argument(
+        "--dot-pattern",
+        choices=["random", "grid", "spiral"],
+        default="random",
+        help="Dot pattern style: 'random', 'grid', or 'spiral' (default: random)"
+    )
+
     args = parser.parse_args()
 
     # Check input exists
@@ -160,13 +238,19 @@ def main():
 
     # Run pipeline
     try:
-        pipeline = SegmentationPipeline(model_name=args.model)
+        pipeline = SegmentationPipeline(
+            model_name=args.model,
+            drawer_type=args.drawer,
+            dot_size=args.dot_size,
+            dot_density=args.dot_density
+        )
         pipeline.process(
             input_image=args.input_image,
             output_image=args.output,
             data_path=args.data,
             save_segmap=not args.no_save_segmap,
-            segmap_path=args.segmap
+            segmap_path=args.segmap,
+            dot_pattern=args.dot_pattern
         )
         return 0
 
