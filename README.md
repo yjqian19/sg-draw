@@ -1,267 +1,45 @@
-# sg-draw
+# SG-Draw
 
-Three independent generative pipelines that transform photos into abstract art.
+## The Idea
 
-## Three Pipelines
+I believe that good photographs have something universal in their composition - the way things are arranged, their proportions, the balance between elements. What if we could extract this underlying order and use it as a foundation for new creative work?
 
-### Pipeline 1: Relationship-Driven Abstract Art
-Visualizes spatial and functional relationships between objects.
-
-- **Focus**: Object relationships (on_top_of, next_to, using, etc.)
-- **Output**: Shapes arranged based on scene structure
-- **Style**: Relationship-driven composition
-
-### Pipeline 2: Proportion-Driven Abstract Art
-Visualizes the visual composition and area proportions of objects.
-
-- **Focus**: Visual area proportions of each object instance
-- **Output**: Shapes sized by their visual area coverage, randomly placed
-- **Style**: Proportion-driven collage
-
-### Pipeline 3: Position-Based Abstract Art
-Visualizes objects at their actual positions with proportional sizes.
-
-- **Focus**: Object positions + proportions from original image
-- **Output**: Shapes at their original relative positions, sized by proportion
-- **Canvas**: Maintains input image aspect ratio (1200px width by default)
-- **Style**: Position-accurate composition
-
-## Installation
-
-```bash
-# Install dependencies with UV
-uv sync
-
-# Create .env file and add your OpenRouter API key
-cp .env.example .env
-# Edit .env: OPENROUTER_API_KEY=your-key-here
-```
-
-## Usage
-
-### Pipeline 1: Scene Graph
-
-```bash
-# Basic usage (uses Claude 3.5 Sonnet by default)
-python pipeline_scene_graph.py test01.jpg
-
-# Use a different model
-python pipeline_scene_graph.py test01.jpg --model openai/gpt-4o
-
-# Custom output paths
-python pipeline_scene_graph.py test01.jpg -o my_output.png -s my_graph.json
-```
-
-**Output:**
-- `output/scene_graph.json` - Structured scene graph with objects and relationships
-- `output/scene_graph.png` - Abstract art showing relationships
-
-### Pipeline 2: Proportion
-
-```bash
-# Basic usage
-python pipeline_proportion.py test01.jpg
-
-# Use a different model
-python pipeline_proportion.py test01.jpg --model google/gemini-pro-1.5
-
-# Custom output paths
-python pipeline_proportion.py test01.jpg -o my_output.png -p my_proportion.json
-```
-
-**Output:**
-- `output/proportion.json` - Each object instance with its visual area proportion
-- `output/proportion.png` - Abstract art with sizes representing proportions
-
-### Pipeline 3: Position
-
-```bash
-# Basic usage
-python pipeline_position.py test01.jpg
-
-# Use a different model
-python pipeline_position.py test01.jpg --model openai/gpt-4o
-
-# Custom output width (height auto-calculated to maintain aspect ratio)
-python pipeline_position.py test01.jpg --width 1600
-
-# Custom output paths
-python pipeline_position.py test01.jpg -o my_output.png -p my_position.json
-```
-
-**Output:**
-- `output/position.json` - Each object with proportion and position coordinates
-- `output/position.png` - Abstract art with shapes at their actual positions
-
-## Supported Models
-
-Via OpenRouter, you can use any vision-capable model:
-- `anthropic/claude-3.5-sonnet` (default, recommended)
-- `openai/gpt-4o`
-- `google/gemini-pro-1.5`
-- `openai/gpt-4-vision-preview`
-- And many more at [openrouter.ai/models](https://openrouter.ai/models)
+So the process goes: **Photo → Extract composition → Create something new based on that structure**
 
 ## How It Works
 
-### Pipeline 1: Scene Graph → Abstract Art
+### Finding the Structure
+I tried a few different ways to understand what's in a photo:
 
-**Stage 1: Scene Graph Extraction**
-- Input: Photo
-- Process: Analyze image using vision model via OpenRouter
-- Output: JSON with objects and their spatial/functional relationships
+**First attempt:** Used a Vision Language Model (OpenAI's API) to describe the image. It could tell me what was there, but the descriptions were too vague - "several people on a street" doesn't give me the precise positions and proportions I needed.
 
-Example output:
-```json
-{
-  "objects": [
-    {"id": "o1", "label": "person"},
-    {"id": "o2", "label": "laptop"},
-    {"id": "o3", "label": "desk"}
-  ],
-  "relations": [
-    {"subject": "o1", "predicate": "using", "object": "o2"},
-    {"subject": "o2", "predicate": "on_top_of", "object": "o3"}
-  ]
-}
-```
+**Second attempt:** Tried Semantic Segmentation (SegFormer model) to identify types of objects like "sky", "road", "building". Better, but it groups everything together - all people become one blob, losing the individual elements that make composition interesting.
 
-**Stage 2: Abstract Drawing**
-- Shapes arranged based on relationships
-- Vertical stacking for `on_top_of`
-- Horizontal adjacency for `next_to`
-- Color-coded by object category
+**Final approach:** Switched to Instance Segmentation (Mask2Former from Hugging Face). This recognizes each individual thing separately - every person, every car, every tree as its own element with its own position and size.
 
-### Pipeline 2: Proportion → Abstract Art
+This last one worked best because it preserves the individual pieces that create the composition's rhythm and balance.
 
-**Stage 1: Proportion Analysis**
-- Input: Photo
-- Process: Identify each object instance and estimate its visual area proportion
-- Output: JSON with each object and its proportion (0.0 to 1.0)
+### Drawing with Dots
 
-Example output:
-```json
-{
-  "objects": [
-    {"id": "1", "label": "sky", "proportion": 0.40},
-    {"id": "2", "label": "building", "proportion": 0.35},
-    {"id": "3", "label": "window", "proportion": 0.02},
-    {"id": "4", "label": "window", "proportion": 0.02}
-  ]
-}
-```
+Once I know where everything is and how big it is, I can redraw the scene in different ways. I tried a few styles:
 
-**Stage 2: Abstract Drawing**
-- Each object becomes a shape
-- Shape area = canvas area × proportion
-- Random placement (overlapping allowed)
-- Color-coded by object category
+**Circles** - Just simple circles for each element. Clean and geometric.
 
-### Pipeline 3: Position → Abstract Art
+**Density Field** - Dots scattered across the canvas, clustering where things were in the original photo. Like pointillism, but driven by the photo's composition.
 
-**Stage 1: Position Analysis**
-- Input: Photo
-- Process: Identify each object instance with proportion AND position
-- Output: JSON with proportions and relative coordinates (0.0 to 1.0)
+**Flowers** - Each element becomes a flower made of dots. Different colors for different types of objects. Petals can be wide or narrow, curved or straight. Each flower randomly rotates so it feels more organic.
 
-Example output:
-```json
-{
-  "image_dimensions": {
-    "original": {"width": 3000, "height": 2000},
-    "output": {"width": 1200, "height": 800}
-  },
-  "objects": [
-    {"id": "1", "label": "window", "proportion": 0.02, "position": {"x": 0.3, "y": 0.5}},
-    {"id": "2", "label": "window", "proportion": 0.02, "position": {"x": 0.7, "y": 0.5}}
-  ]
-}
-```
+## Current Results
 
-**Stage 2: Abstract Drawing**
-- Each object becomes a shape at its actual position
-- Shape area = canvas area × proportion
-- Position = relative coordinates converted to absolute pixels
-- Canvas maintains input image aspect ratio
-- Color-coded by object category
+It's still a work in progress. The flowers sometimes look a bit stiff, the density fields can be too chaotic or too organized. But the core idea works - you can feel the original composition in the abstract result.
 
-## Visual Encoding Rules
+## What's Next
 
-All three pipelines use the same color and shape mapping:
+- Make the flowers feel more natural
+- Try other drawing styles
+- Experiment with different types of input images
+- Maybe let the computer make some artistic choices on its own
 
-**Colors:**
-- People/animals → warm colors (red, orange, yellow)
-- Devices/machines → cool colors (blue, purple, teal)
-- Tools/small objects → bright colors (pink, lime, cyan)
-- Surfaces/backgrounds → neutral colors (gray, silver)
+---
 
-**Shapes:**
-- People/animals → circles
-- Devices/machines → rectangles
-- Tools/small objects → circles or squares
-- Surfaces → rectangles
-
-## Project Structure
-
-```
-sg-draw/
-├── scene_graph/              # Pipeline 1
-│   ├── extractor.py         # Scene graph extraction
-│   └── drawer.py            # Relationship-driven drawing
-├── proportion/              # Pipeline 2
-│   ├── extractor.py         # Proportion analysis
-│   └── drawer.py            # Proportion-driven drawing
-├── position/                # Pipeline 3
-│   ├── extractor.py         # Position + proportion analysis
-│   └── drawer.py            # Position-based drawing
-├── output/                  # Generated outputs (JSON and PNG)
-├── pipeline_scene_graph.py  # Pipeline 1 entry point
-├── pipeline_proportion.py   # Pipeline 2 entry point
-├── pipeline_position.py     # Pipeline 3 entry point
-├── test01.jpg              # Test images
-├── .env                    # API configuration
-├── pyproject.toml          # UV dependencies
-└── README.md               # This file
-```
-
-## Python API
-
-### Pipeline 1
-
-```python
-from scene_graph.extractor import SceneGraphExtractor
-from scene_graph.drawer import AbstractDrawer
-
-# Extract scene graph
-extractor = SceneGraphExtractor(model="anthropic/claude-3.5-sonnet")
-scene_graph = extractor.extract("photo.jpg")
-
-# Generate abstract art
-drawer = AbstractDrawer()
-drawer.draw(scene_graph, "output.png")
-```
-
-### Pipeline 2
-
-```python
-from proportion.extractor import ProportionExtractor
-from proportion.drawer import ProportionDrawer
-
-# Extract proportions
-extractor = ProportionExtractor(model="openai/gpt-4o")
-proportion_data = extractor.extract("photo.jpg")
-
-# Generate abstract art
-drawer = ProportionDrawer()
-drawer.draw(proportion_data, "output.png")
-```
-
-## Requirements
-
-- Python 3.12+
-- UV package manager
-- OpenRouter API key
-
-## License
-
-MIT License
+*This project explores the tension between structure and spontaneity, between what the photo tells us and what we choose to create from that information.*
