@@ -177,6 +177,8 @@ class DepthContourDrawer:
 
         # Store contours for each level (for filled mode)
         all_contours = []
+        # Store contour data for external use (e.g., tangent flow)
+        all_contours_data = []
 
         # Extract and draw contours for each level
         for i, level in enumerate(levels):
@@ -220,6 +222,13 @@ class DepthContourDrawer:
                 if self.fill_contours:
                     all_contours.append((depth_value, points))
 
+                # Store contour data for external use
+                all_contours_data.append({
+                    'level': depth_value,
+                    'points': points,
+                    'closed': len(points) > 2
+                })
+
             # Progress indicator
             if (i + 1) % 5 == 0:
                 print(f"    {i + 1}/{len(levels)} levels processed...")
@@ -257,6 +266,9 @@ class DepthContourDrawer:
         # Save
         img.save(output_path)
         print(f"Depth contour map saved to {output_path}")
+
+        # Return contour data for potential further processing
+        return all_contours_data
 
 
 class DepthContourDrawerAdvanced:
