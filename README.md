@@ -19,6 +19,8 @@ I tried a few different ways to understand what's in a photo:
 
 This last one worked best because it preserves the individual pieces that create the composition's rhythm and balance.
 
+**New exploration:** Added Depth Estimation (Depth-Anything-V2) to understand the spatial layers in a photo - what's close, what's far. This opens up possibilities for creating depth-based visualizations and understanding perspective lines in composition.
+
 ### Drawing with Dots
 
 Once I know where everything is and how big it is, I can redraw the scene in different ways. I tried a few styles:
@@ -33,12 +35,29 @@ Once I know where everything is and how big it is, I can redraw the scene in dif
 
 It's still a work in progress. The flowers sometimes look a bit stiff, the density fields can be too chaotic or too organized. But the core idea works - you can feel the original composition in the abstract result.
 
+## Pipelines
+
+### Segmentation
+Extract and visualize elements from photos:
+```bash
+python pipeline_segmentation.py test02.jpg
+```
+
+### Depth Estimation
+Extract depth maps to understand spatial layers:
+```bash
+python pipeline_depth.py test02.jpg
+# Or use different models for better quality:
+python pipeline_depth.py test02.jpg --model depth-anything/Depth-Anything-V2-Base-hf
+```
+
 ## What's Next
 
+- Create depth-based drawing styles (contour lines, depth fields, layered compositions)
+- Use depth information to detect composition guidelines (perspective lines, vanishing points)
 - Make the flowers feel more natural
 - Try other drawing styles
 - Experiment with different types of input images
-- Maybe let the computer make some artistic choices on its own
 
 ---
 
