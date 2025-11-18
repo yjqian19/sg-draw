@@ -179,8 +179,9 @@ class DepthFlowDrawer:
 
         # Create matplotlib figure
         fig, ax = plt.subplots(figsize=(self.canvas_width/100, canvas_height/100), dpi=100)
-        ax.set_xlim(0, width)
-        ax.set_ylim(0, height)
+        # Set coordinate system to match image coordinate system
+        ax.set_xlim(0, width)  # X: left to right
+        ax.set_ylim(height, 0)  # Y: top to bottom (inverted from matplotlib default)
         ax.set_aspect('equal')
         ax.axis('off')
 
@@ -193,9 +194,15 @@ class DepthFlowDrawer:
             color_data = speed
             cmap = 'viridis'
         elif self.color_mode == "depth":
-            color_data = depth_map_resized
-            # Use coolwarm colormap (blue=far/deep, red=near/shallow)
-            cmap = 'coolwarm'
+            # Apply non-linear transformation to emphasize deep areas
+            depth_inv = 1.0 - depth_map_resized  # 0=shallow, 1=deep
+            # Use power function to make color changes more dramatic in deep areas
+            color_data = 1.0 - np.power(depth_inv, 1.5)  # Transform back to original range
+            # Custom colormap: green (shallow/high depth) -> blue (deep/low depth)
+            from matplotlib.colors import LinearSegmentedColormap
+            colors = ['#0a4a7a', '#1e88e5', '#42a5f5', '#81c784', '#aed581', '#c5e1a5']  # deep blue -> light green
+            n_bins = 256
+            cmap = LinearSegmentedColormap.from_list('depth_green_blue', colors, N=n_bins)
         elif self.color_mode == "rainbow":
             color_data = depth_map_resized
             cmap = 'rainbow'
@@ -203,11 +210,15 @@ class DepthFlowDrawer:
             color_data = np.ones_like(depth_map_resized) * 0.5
             cmap = 'gray'
 
-        # Variable line width based on depth
+        # Variable line width based on depth with non-linear mapping
         if self.variable_width:
             # Thin lines in shallow areas (high depth values ~1.0)
             # Thick lines in deep areas (low depth values ~0.0)
-            linewidth = self.min_width + (self.max_width - self.min_width) * (1.0 - depth_map_resized)
+            # Use power function to make changes more dramatic in deep areas
+            depth_inv = 1.0 - depth_map_resized  # 0=shallow, 1=deep
+            # Higher power = more dramatic changes in deep areas
+            width_factor = np.power(depth_inv, 2.2)  # Increased from 1.5 to 2.2 for more dramatic effect
+            linewidth = self.min_width + (self.max_width - self.min_width) * width_factor
         else:
             linewidth = self.line_width
 
