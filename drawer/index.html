@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Field Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 100;
+            width: 280px;
+            border: 1px solid #222;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            font-weight: normal;
+            color: #fff;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-description {
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value {
+            float: right;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        select:hover {
+            background: #333;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        #canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            margin-left: 0;
+        }
+
+        #canvas-container canvas {
+            border: 1px solid #333;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>Flow Field</h1>
+
+        <div class="control-group">
+            <label class="control-label">Data File</label>
+            <input type="file" id="dataFile" accept=".json">
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Density <span class="value" id="densityValue">4.5</span>
+            </label>
+            <input type="range" id="density" min="1" max="30" step="0.5" value="4.5">
+            <div class="control-description">Number of streamlines (1-30)</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Step Size <span class="value" id="stepSizeValue">2.0</span>
+            </label>
+            <input type="range" id="stepSize" min="0.5" max="5" step="0.1" value="2.0">
+            <div class="control-description">Distance per integration step</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Max Length <span class="value" id="maxLengthValue">1000</span>
+            </label>
+            <input type="range" id="maxLength" min="100" max="2000" step="50" value="1000">
+            <div class="control-description">Maximum steps per streamline</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Line Width <span class="value" id="lineWidthValue">1.5</span>
+            </label>
+            <input type="range" id="lineWidth" min="0.5" max="5" step="0.1" value="1.5">
+            <div class="control-description">Thickness of streamlines</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">Color Scheme</label>
+            <select id="colorScheme">
+                <option value="ocean">Ocean</option>
+                <option value="sunset">Sunset</option>
+                <option value="forest">Forest</option>
+                <option value="rainbow">Rainbow</option>
+            </select>
+        </div>
+
+        <button id="saveBtn">Save Image (S)</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="colors.js"></script>
+    <script src="flow_field.js"></script>
+    <script src="streamline.js"></script>
+    <script src="sketch.js"></script>
+</body>
+</html>
