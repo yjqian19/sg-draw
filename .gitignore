@@ -9,5 +9,8 @@ __pycache__/
 # Generated outputs
 output/
 archived/
+references/
+zzarchived/
+
 
 .DS_Store
