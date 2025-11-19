@@ -23,20 +23,27 @@ let params = {
 // UI elements
 let densitySlider, stepSizeSlider, maxLengthSlider, lineWidthSlider;
 let colorSchemeSelect, depthPowerSlider, invertDepthCheckbox;
+let densityValue, stepSizeValue, maxLengthValue, lineWidthValue;
 
-// Debounce timer for streamline generation
-let generateTimer = null;
-
-function preload() {
-    // Try to load default data file
-    // User can also load via file input
+function getNumberInputValue(element, fallback, min = -Infinity, max = Infinity) {
+    let val = parseFloat(element.value());
+    if (isNaN(val)) {
+        val = fallback;
+    }
+    val = constrain(val, min, max);
+    element.value(val);
+    return val;
 }
+
 
 function setup() {
     // Create canvas with black background
     let container = select('#canvas-container');
     let canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent(container);
+
+    // Stop the draw loop - we'll only draw when Generate is clicked
+    noLoop();
 
     // Setup UI controls
     setupControls();
@@ -50,66 +57,94 @@ function initializeFlowField() {
     canvasHeight = flowField.height;
     resizeCanvas(canvasWidth, canvasHeight);
 
-    // Generate streamlines
-    generateStreamlines();
+    // Clear existing streamlines - user must click Generate to create new ones
+    streamlines = [];
+
+    // Render initial state (empty canvas with message)
+    renderFlowField();
 }
 
 function setupControls() {
-    // File input
+    // File input - still auto-loads when file is selected
     select('#dataFile').changed(loadDataFile);
 
-    // Density slider (1-30, more dense range)
+    // Store references to UI elements
     densitySlider = select('#density');
-    densitySlider.input(() => {
-        params.density = parseFloat(densitySlider.value());
-        select('#densityValue').html(params.density.toFixed(1));
-        debouncedGenerateStreamlines();
-    });
-
-    // Step size slider
     stepSizeSlider = select('#stepSize');
-    stepSizeSlider.input(() => {
-        params.stepSize = parseFloat(stepSizeSlider.value());
-        select('#stepSizeValue').html(params.stepSize.toFixed(1));
-        debouncedGenerateStreamlines();
-    });
-
-    // Max length slider
     maxLengthSlider = select('#maxLength');
-    maxLengthSlider.input(() => {
-        params.maxLength = parseInt(maxLengthSlider.value());
-        select('#maxLengthValue').html(params.maxLength);
-        debouncedGenerateStreamlines();
-    });
-
-    // Line width slider
     lineWidthSlider = select('#lineWidth');
-    lineWidthSlider.input(() => {
-        params.lineWidth = parseFloat(lineWidthSlider.value());
-        select('#lineWidthValue').html(params.lineWidth.toFixed(1));
-    });
-
-    // Color scheme select
     colorSchemeSelect = select('#colorScheme');
-    colorSchemeSelect.changed(() => {
-        params.colorScheme = colorSchemeSelect.value();
-    });
-
-    // Depth power slider (0.5 - 2.5)
     depthPowerSlider = select('#depthPower');
-    depthPowerSlider.input(() => {
-        params.depthPower = parseFloat(depthPowerSlider.value());
-        select('#depthPowerValue').html(params.depthPower.toFixed(1));
-    });
-
-    // Invert depth toggle
     invertDepthCheckbox = select('#invertDepth');
-    invertDepthCheckbox.changed(() => {
-        params.invertDepth = invertDepthCheckbox.elt.checked;
+
+    // Value display elements
+    densityValue = select('#densityValue');
+    stepSizeValue = select('#stepSizeValue');
+    maxLengthValue = select('#maxLengthValue');
+    lineWidthValue = select('#lineWidthValue');
+
+    // Update display values when sliders change (but don't generate)
+    // Use throttled updates to reduce DOM manipulation frequency
+    const createThrottledUpdater = (display, formatter) => {
+        let rafId = null;
+        return (value) => {
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+            rafId = requestAnimationFrame(() => {
+                display.elt.textContent = formatter(value);
+                rafId = null;
+            });
+        };
+    };
+
+    const updateDensity = createThrottledUpdater(densityValue, (v) => parseFloat(v).toFixed(1));
+    const updateStepSize = createThrottledUpdater(stepSizeValue, (v) => parseFloat(v).toFixed(1));
+    const updateMaxLength = createThrottledUpdater(maxLengthValue, (v) => parseInt(v));
+    const updateLineWidth = createThrottledUpdater(lineWidthValue, (v) => parseFloat(v).toFixed(1));
+
+    // Use native DOM events for better performance
+    densitySlider.elt.addEventListener('input', (e) => {
+        updateDensity(e.target.value);
+    });
+    stepSizeSlider.elt.addEventListener('input', (e) => {
+        updateStepSize(e.target.value);
+    });
+    maxLengthSlider.elt.addEventListener('input', (e) => {
+        updateMaxLength(e.target.value);
+    });
+    lineWidthSlider.elt.addEventListener('input', (e) => {
+        updateLineWidth(e.target.value);
     });
 
-    // Save button
-    select('#saveBtn').mousePressed(saveImage);
+    // Reset button
+    select('#resetBtn').elt.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetCanvas();
+    });
+
+    // Generate button - reads all values and generates
+    select('#generateBtn').mousePressed(() => {
+        if (!flowField) {
+            alert('Please load a flow field JSON file first.');
+            return;
+        }
+        // Read all input values when Generate is clicked
+        updateParamsFromUI();
+        generateStreamlines();
+    });
+}
+
+function updateParamsFromUI() {
+    // Read all values from UI elements and update params
+    // For sliders, use .value() method
+    params.density = parseFloat(densitySlider.value());
+    params.stepSize = parseFloat(stepSizeSlider.value());
+    params.maxLength = parseInt(maxLengthSlider.value());
+    params.lineWidth = parseFloat(lineWidthSlider.value());
+    params.colorScheme = colorSchemeSelect.value();
+    params.depthPower = getNumberInputValue(depthPowerSlider, params.depthPower, 0.01, 2.5);
+    params.invertDepth = invertDepthCheckbox.elt.checked;
 }
 
 function loadDataFile() {
@@ -120,6 +155,7 @@ function loadDataFile() {
             try {
                 flowField = JSON.parse(e.target.result);
                 initializeFlowField();
+                // File loaded successfully - user must click Generate to create streamlines
             } catch (err) {
                 console.error('Error loading file:', err);
                 alert('Error loading file. Please check the file format.');
@@ -127,16 +163,6 @@ function loadDataFile() {
         };
         reader.readAsText(file);
     }
-}
-
-// Debounced version - waits for user to stop adjusting
-function debouncedGenerateStreamlines() {
-    if (generateTimer) {
-        clearTimeout(generateTimer);
-    }
-    generateTimer = setTimeout(() => {
-        generateStreamlines();
-    }, 300); // Wait 300ms after user stops adjusting
 }
 
 function showLoading() {
@@ -195,10 +221,14 @@ function generateStreamlines() {
 
         // Hide loading indicator
         hideLoading();
+
+        // Render once after generation is complete
+        renderFlowField();
     }, 10);
 }
 
-function draw() {
+function renderFlowField() {
+    // Single render pass - draw everything once
     // Black background
     background(0);
 
@@ -226,16 +256,16 @@ function draw() {
     }
 }
 
-function keyPressed() {
-    if (key === 's' || key === 'S') {
-        saveImage();
-    }
+function draw() {
+    // Called once initially after setup() (noLoop() stops continuous drawing)
+    // Delegate to renderFlowField() to avoid code duplication
+    renderFlowField();
 }
 
-function saveImage() {
-    if (!flowField) return;
+function resetCanvas() {
+    // Clear streamlines
+    streamlines = [];
 
-    let filename = 'flow_field_' + new Date().getTime() + '.png';
-    saveCanvas(filename);
-    console.log('Image saved:', filename);
+    // Re-render to show empty state
+    renderFlowField();
 }

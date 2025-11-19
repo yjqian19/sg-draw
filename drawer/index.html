@@ -82,6 +82,7 @@
             border-radius: 2px;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -158,6 +159,23 @@
             background: #333;
         }
 
+        .number-input {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 12px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .number-input:focus {
+            border-color: #888;
+            outline: none;
+        }
+
         #canvas-container {
             display: flex;
             justify-content: center;
@@ -217,7 +235,7 @@
     <div id="controls">
         <h1>Flow Field</h1>
 
-        <h2>Generation</h2>
+        <h2>Data</h2>
 
         <div class="control-group">
             <label class="control-label">Data File</label>
@@ -225,8 +243,15 @@
         </div>
 
         <div class="control-group">
+            <button id="resetBtn" type="button">Reset</button>
+        </div>
+
+        <h2>Generation</h2>
+
+        <div class="control-group">
             <label class="control-label">
-                Density <span class="value" id="densityValue">4.5</span>
+                Density
+                <span class="value" id="densityValue">4.5</span>
             </label>
             <input type="range" id="density" min="1" max="30" step="0.5" value="4.5">
             <div class="control-description">Number of streamlines (1-30)</div>
@@ -234,7 +259,8 @@
 
         <div class="control-group">
             <label class="control-label">
-                Step Size <span class="value" id="stepSizeValue">2.0</span>
+                Step Size
+                <span class="value" id="stepSizeValue">2.0</span>
             </label>
             <input type="range" id="stepSize" min="0.5" max="5" step="0.1" value="2.0">
             <div class="control-description">Distance per integration step</div>
@@ -242,7 +268,8 @@
 
         <div class="control-group">
             <label class="control-label">
-                Max Length <span class="value" id="maxLengthValue">1000</span>
+                Max Length
+                <span class="value" id="maxLengthValue">1000</span>
             </label>
             <input type="range" id="maxLength" min="100" max="2000" step="50" value="1000">
             <div class="control-description">Maximum steps per streamline</div>
@@ -250,7 +277,8 @@
 
         <div class="control-group">
             <label class="control-label">
-                Line Width <span class="value" id="lineWidthValue">1.5</span>
+                Line Width
+                <span class="value" id="lineWidthValue">1.5</span>
             </label>
             <input type="range" id="lineWidth" min="0.5" max="5" step="0.1" value="1.5">
             <div class="control-description">Thickness of streamlines</div>
@@ -269,10 +297,10 @@
 
         <div class="control-group">
             <label class="control-label">
-                Depth Emphasis <span class="value" id="depthPowerValue">1.5</span>
+                Depth Emphasis
             </label>
-            <input type="range" id="depthPower" min="0.5" max="2.5" step="0.1" value="1.5">
-            <div class="control-description">&gt;1: deep areas change more · &lt;1: shallow areas change more</div>
+            <input type="number" class="number-input" id="depthPower" min="0.01" max="2.5" step="0.1" value="1.5">
+            <div class="control-description">&gt;1: deep areas change more · &lt;1: shallow areas change more (cannot be 0)</div>
         </div>
 
         <div class="control-group">
@@ -283,7 +311,7 @@
             </div>
         </div>
 
-        <button id="saveBtn">Save Image (S)</button>
+        <button id="generateBtn" type="button">Generate Flow</button>
     </div>
 
     <div id="canvas-container"></div>
