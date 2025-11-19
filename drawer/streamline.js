@@ -112,7 +112,7 @@ function catmullRom(p0, p1, p2, p3, t) {
  * @param {number} lineWidth - Line width
  * @param {boolean} smooth - Use smooth curve interpolation
  */
-function drawStreamline(points, flowField, colorScheme = 'ocean', lineWidth = 1.5, smooth = true) {
+function drawStreamline(points, flowField, colorScheme = 'ocean', lineWidth = 1.5, smooth = true, colorOptions = {}) {
     if (points.length < 2) return;
 
     // Smooth if requested
@@ -129,7 +129,7 @@ function drawStreamline(points, flowField, colorScheme = 'ocean', lineWidth = 1.
         let depth = flowField.getDepth(midX, midY);
 
         // Get color
-        let c = depthToColor(depth, colorScheme);
+        let c = depthToColor(depth, colorScheme, colorOptions);
         stroke(c);
         strokeWeight(lineWidth);
 

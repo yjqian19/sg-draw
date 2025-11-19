@@ -15,12 +15,14 @@ let params = {
     maxLength: 1000,
     lineWidth: 1.5,
     colorScheme: 'ocean',
+    depthPower: 1.5,
+    invertDepth: false,
     smooth: true
 };
 
 // UI elements
 let densitySlider, stepSizeSlider, maxLengthSlider, lineWidthSlider;
-let colorSchemeSelect;
+let colorSchemeSelect, depthPowerSlider, invertDepthCheckbox;
 
 // Debounce timer for streamline generation
 let generateTimer = null;
@@ -91,6 +93,19 @@ function setupControls() {
     colorSchemeSelect = select('#colorScheme');
     colorSchemeSelect.changed(() => {
         params.colorScheme = colorSchemeSelect.value();
+    });
+
+    // Depth power slider (0.5 - 2.5)
+    depthPowerSlider = select('#depthPower');
+    depthPowerSlider.input(() => {
+        params.depthPower = parseFloat(depthPowerSlider.value());
+        select('#depthPowerValue').html(params.depthPower.toFixed(1));
+    });
+
+    // Invert depth toggle
+    invertDepthCheckbox = select('#invertDepth');
+    invertDepthCheckbox.changed(() => {
+        params.invertDepth = invertDepthCheckbox.elt.checked;
     });
 
     // Save button
@@ -202,7 +217,11 @@ function draw() {
             flowField,
             params.colorScheme,
             params.lineWidth,
-            params.smooth
+            params.smooth,
+            {
+                depthPower: params.depthPower,
+                invertDepth: params.invertDepth
+            }
         );
     }
 }

@@ -41,9 +41,18 @@ function transformDepth(depth, power = 1.5) {
  * @param {boolean} emphasizeDeep - Apply non-linear transformation (default: true)
  * @returns {p5.Color} p5.js color object
  */
-function depthToColor(depth, scheme = 'ocean', emphasizeDeep = true) {
-    // Apply non-linear transformation to emphasize deep areas
-    let transformedDepth = emphasizeDeep ? transformDepth(depth, 1.5) : depth;
+function depthToColor(depth, scheme = 'ocean', options = {}) {
+    const {
+        emphasizeDeep = true,
+        depthPower = 1.5,
+        invertDepth = false
+    } = options;
+
+    // Optionally invert depth (swap near/far)
+    let depthValue = invertDepth ? 1.0 - depth : depth;
+
+    // Apply non-linear transformation to emphasize deep or shallow areas
+    let transformedDepth = emphasizeDeep ? transformDepth(depthValue, depthPower) : depthValue;
 
     const colors = ColorSchemes[scheme];
     if (!colors) {
