@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+Please run code in virtual environment. Reference code: `source .venv/bin/activate `
