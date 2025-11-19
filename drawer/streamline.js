@@ -63,6 +63,8 @@ function integrateStreamline(x0, y0, flowField, stepSize = 2.0, maxLength = 1000
 function smoothStreamline(points) {
     if (points.length < 2) return points;
 
+    // Optimize: reduce interpolation points for performance
+    // Use adaptive step size based on segment length
     let smoothed = [];
     for (let i = 0; i < points.length - 1; i++) {
         let p0 = i > 0 ? points[i - 1] : points[i];
@@ -70,8 +72,16 @@ function smoothStreamline(points) {
         let p2 = points[i + 1];
         let p3 = i < points.length - 2 ? points[i + 2] : points[i + 1];
 
+        // Calculate segment length to determine interpolation density
+        let dx = p2.x - p1.x;
+        let dy = p2.y - p1.y;
+        let segmentLength = Math.sqrt(dx * dx + dy * dy);
+
+        // Adaptive step: shorter segments = fewer points, longer = more
+        let step = segmentLength < 5 ? 0.2 : (segmentLength < 20 ? 0.15 : 0.1);
+
         // Catmull-Rom interpolation
-        for (let t = 0; t < 1; t += 0.1) {
+        for (let t = 0; t < 1; t += step) {
             let x = catmullRom(p0.x, p1.x, p2.x, p3.x, t);
             let y = catmullRom(p0.y, p1.y, p2.y, p3.y, t);
             smoothed.push({ x, y });

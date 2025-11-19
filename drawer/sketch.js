@@ -22,6 +22,9 @@ let params = {
 let densitySlider, stepSizeSlider, maxLengthSlider, lineWidthSlider;
 let colorSchemeSelect;
 
+// Debounce timer for streamline generation
+let generateTimer = null;
+
 function preload() {
     // Try to load default data file
     // User can also load via file input
@@ -35,22 +38,6 @@ function setup() {
 
     // Setup UI controls
     setupControls();
-
-    // Try to load default file
-    loadDefaultFile();
-}
-
-function loadDefaultFile() {
-    // Try to load default data file
-    let defaultFile = '../output/analyzer/test06_flow_field.json';
-    try {
-        loadJSON(defaultFile, function(data) {
-            flowField = data;
-            initializeFlowField();
-        });
-    } catch (e) {
-        console.log('Default file not found, please load a JSON file via file input');
-    }
 }
 
 function initializeFlowField() {
@@ -74,7 +61,7 @@ function setupControls() {
     densitySlider.input(() => {
         params.density = parseFloat(densitySlider.value());
         select('#densityValue').html(params.density.toFixed(1));
-        generateStreamlines();
+        debouncedGenerateStreamlines();
     });
 
     // Step size slider
@@ -82,7 +69,7 @@ function setupControls() {
     stepSizeSlider.input(() => {
         params.stepSize = parseFloat(stepSizeSlider.value());
         select('#stepSizeValue').html(params.stepSize.toFixed(1));
-        generateStreamlines();
+        debouncedGenerateStreamlines();
     });
 
     // Max length slider
@@ -90,7 +77,7 @@ function setupControls() {
     maxLengthSlider.input(() => {
         params.maxLength = parseInt(maxLengthSlider.value());
         select('#maxLengthValue').html(params.maxLength);
-        generateStreamlines();
+        debouncedGenerateStreamlines();
     });
 
     // Line width slider
@@ -127,40 +114,73 @@ function loadDataFile() {
     }
 }
 
+// Debounced version - waits for user to stop adjusting
+function debouncedGenerateStreamlines() {
+    if (generateTimer) {
+        clearTimeout(generateTimer);
+    }
+    generateTimer = setTimeout(() => {
+        generateStreamlines();
+    }, 300); // Wait 300ms after user stops adjusting
+}
+
+function showLoading() {
+    let loading = select('#loading').elt;
+    loading.classList.add('show');
+}
+
+function hideLoading() {
+    let loading = select('#loading').elt;
+    loading.classList.remove('show');
+}
+
 function generateStreamlines() {
     if (!flowField) return;
 
-    streamlines = [];
+    // Show loading indicator
+    showLoading();
 
-    // Generate starting points using stratified sampling
-    // Density controls the grid size: higher density = more streamlines
-    let gridSize = Math.floor(Math.sqrt(params.density * 100));
-    let xStep = flowField.width / gridSize;
-    let yStep = flowField.height / gridSize;
+    // Use setTimeout to allow UI to update before heavy computation
+    setTimeout(() => {
+        console.log('Generating streamlines...');
+        let startTime = performance.now();
 
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            // Add random jitter
-            let x = i * xStep + random(-xStep / 2, xStep / 2);
-            let y = j * yStep + random(-yStep / 2, yStep / 2);
+        streamlines = [];
 
-            x = constrain(x, 0, flowField.width - 1);
-            y = constrain(y, 0, flowField.height - 1);
+        // Generate starting points using stratified sampling
+        // Density controls the grid size: higher density = more streamlines
+        let gridSize = Math.floor(Math.sqrt(params.density * 100));
+        let xStep = flowField.width / gridSize;
+        let yStep = flowField.height / gridSize;
 
-            let points = integrateStreamline(
-                x, y,
-                flowField,
-                params.stepSize,
-                params.maxLength
-            );
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                // Add random jitter
+                let x = i * xStep + random(-xStep / 2, xStep / 2);
+                let y = j * yStep + random(-yStep / 2, yStep / 2);
 
-            if (points.length > 10) {
-                streamlines.push(points);
+                x = constrain(x, 0, flowField.width - 1);
+                y = constrain(y, 0, flowField.height - 1);
+
+                let points = integrateStreamline(
+                    x, y,
+                    flowField,
+                    params.stepSize,
+                    params.maxLength
+                );
+
+                if (points.length > 10) {
+                    streamlines.push(points);
+                }
             }
         }
-    }
 
-    console.log(`Generated ${streamlines.length} streamlines`);
+        let endTime = performance.now();
+        console.log(`Generated ${streamlines.length} streamlines in ${(endTime - startTime).toFixed(0)}ms`);
+
+        // Hide loading indicator
+        hideLoading();
+    }, 10);
 }
 
 function draw() {
