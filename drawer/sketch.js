@@ -133,6 +133,15 @@ function setupControls() {
         updateParamsFromUI();
         generateStreamlines();
     });
+
+    // Export SVG button
+    select('#exportSvgBtn').mousePressed(() => {
+        if (!flowField || streamlines.length === 0) {
+            alert('Please generate a flow field first.');
+            return;
+        }
+        exportSVGForLaser();
+    });
 }
 
 function updateParamsFromUI() {
@@ -268,4 +277,61 @@ function resetCanvas() {
 
     // Re-render to show empty state
     renderFlowField();
+}
+
+function exportSVGForLaser() {
+    console.log('Exporting SVG for laser engraving...');
+
+    // Create SVG header with precise dimensions
+    let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" `;
+    svg += `width="${canvasWidth}mm" height="${canvasHeight}mm" `;
+    svg += `viewBox="0 0 ${canvasWidth} ${canvasHeight}">\n`;
+
+    // Optional: Add metadata
+    svg += `  <title>Flow Field for Laser Engraving</title>\n`;
+    svg += `  <desc>Generated from flow field visualization - ${new Date().toISOString()}</desc>\n\n`;
+
+    // Main group for all paths
+    svg += `  <g id="flow-lines" stroke="black" fill="none" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">\n`;
+
+    // Convert each streamline to SVG path
+    let pathCount = 0;
+    for (let points of streamlines) {
+        if (points.length < 2) continue; // Skip invalid paths
+
+        // Build path data
+        let pathData = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+
+        for (let i = 1; i < points.length; i++) {
+            pathData += ` L ${points[i].x.toFixed(2)} ${points[i].y.toFixed(2)}`;
+        }
+
+        svg += `    <path d="${pathData}" />\n`;
+        pathCount++;
+    }
+
+    svg += `  </g>\n`;
+    svg += `</svg>`;
+
+    // Create download
+    let filename = 'flow_field_laser_' + new Date().getTime() + '.svg';
+    let blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    let url = URL.createObjectURL(blob);
+
+    let link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Cleanup
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 100);
+
+    console.log(`SVG exported: ${filename} (${pathCount} paths)`);
 }
