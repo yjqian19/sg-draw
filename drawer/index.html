@@ -249,6 +249,15 @@
         <h2>Generation</h2>
 
         <div class="control-group">
+            <label class="control-label">Render Mode</label>
+            <select id="renderMode">
+                <option value="line">Line</option>
+                <option value="dots">Dots</option>
+            </select>
+            <div class="control-description">How to draw streamlines</div>
+        </div>
+
+        <div class="control-group">
             <label class="control-label">
                 Density
                 <span class="value" id="densityValue">4.5</span>
@@ -282,6 +291,44 @@
             </label>
             <input type="range" id="lineWidth" min="0.5" max="5" step="0.1" value="1.5">
             <div class="control-description">Thickness of streamlines</div>
+        </div>
+
+        <h2>Dots Settings</h2>
+
+        <div class="control-group">
+            <label class="control-label">
+                Dot Size
+                <span class="value" id="dotSizeValue">2.0</span>
+            </label>
+            <input type="range" id="dotSize" min="0.5" max="5" step="0.1" value="2.0">
+            <div class="control-description">Size of each dot</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Dot Spacing
+                <span class="value" id="dotSpacingValue">5</span>
+            </label>
+            <input type="range" id="dotSpacing" min="1" max="20" step="1" value="5">
+            <div class="control-description">Distance between dots along line</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Dots Per Line
+                <span class="value" id="dotsPerLineValue">3</span>
+            </label>
+            <input type="range" id="dotsPerLine" min="1" max="10" step="1" value="3">
+            <div class="control-description">Number of dots across line width</div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                Spread Radius
+                <span class="value" id="spreadRadiusValue">2.0</span>
+            </label>
+            <input type="range" id="spreadRadius" min="0" max="10" step="0.5" value="2.0">
+            <div class="control-description">Random scatter perpendicular to line</div>
         </div>
 
         <h2>Color</h2>

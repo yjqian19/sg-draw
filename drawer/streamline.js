@@ -136,3 +136,68 @@ function drawStreamline(points, flowField, colorScheme = 'ocean', lineWidth = 1.
         line(p1.x, p1.y, p2.x, p2.y);
     }
 }
+
+/**
+ * Draw streamline as dots with scatter
+ * @param {Array} points - Array of {x, y} points
+ * @param {FlowField} flowField - Flow field for depth lookup
+ * @param {string} colorScheme - Color scheme name
+ * @param {Object} dotParams - Dot parameters {dotSize, dotSpacing, dotsPerLine, spreadRadius}
+ * @param {boolean} smooth - Use smooth curve interpolation
+ * @param {Object} colorOptions - Color options {depthPower, invertDepth}
+ */
+function drawStreamlineAsDots(points, flowField, colorScheme = 'ocean', dotParams = {}, smooth = true, colorOptions = {}) {
+    if (points.length < 2) return;
+
+    // Extract parameters with defaults
+    const {
+        dotSize = 2.0,
+        dotSpacing = 5,
+        dotsPerLine = 3,
+        spreadRadius = 2.0
+    } = dotParams;
+
+    // Smooth if requested
+    let drawPoints = smooth ? smoothStreamline(points) : points;
+
+    // Sample points along the streamline
+    for (let i = 0; i < drawPoints.length - 1; i += dotSpacing) {
+        let p = drawPoints[i];
+
+        // Get direction for perpendicular scatter
+        let nextIdx = Math.min(i + 1, drawPoints.length - 1);
+        let nextP = drawPoints[nextIdx];
+        let dx = nextP.x - p.x;
+        let dy = nextP.y - p.y;
+        let len = Math.sqrt(dx * dx + dy * dy);
+
+        // Perpendicular direction (normalized)
+        let perpX = -dy / (len + 0.001);
+        let perpY = dx / (len + 0.001);
+
+        // Draw multiple dots perpendicular to the line
+        for (let j = 0; j < dotsPerLine; j++) {
+            // Distribute dots across the line width
+            // Center them around the streamline
+            let spread = (j - (dotsPerLine - 1) / 2) * (spreadRadius / Math.max(1, dotsPerLine - 1));
+
+            // Add random offset for natural look
+            let randomOffset = random(-spreadRadius * 0.3, spreadRadius * 0.3);
+            let totalOffset = spread + randomOffset;
+
+            let dotX = p.x + perpX * totalOffset;
+            let dotY = p.y + perpY * totalOffset;
+
+            // Get depth at dot position
+            let depth = flowField.getDepth(dotX, dotY);
+
+            // Get color
+            let c = depthToColor(depth, colorScheme, colorOptions);
+
+            // Draw dot
+            fill(c);
+            noStroke();
+            circle(dotX, dotY, dotSize);
+        }
+    }
+}

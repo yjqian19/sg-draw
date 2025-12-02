@@ -10,6 +10,7 @@ let canvasHeight = 675;
 
 // Parameters
 let params = {
+    renderMode: 'line',
     density: 4.5,
     stepSize: 2.0,
     maxLength: 1000,
@@ -17,13 +18,22 @@ let params = {
     colorScheme: 'ocean',
     depthPower: 1.5,
     invertDepth: false,
-    smooth: true
+    smooth: true,
+    // Dots mode parameters
+    dotSize: 2.0,
+    dotSpacing: 5,
+    dotsPerLine: 3,
+    spreadRadius: 2.0
 };
 
 // UI elements
+let renderModeSelect;
 let densitySlider, stepSizeSlider, maxLengthSlider, lineWidthSlider;
 let colorSchemeSelect, depthPowerSlider, invertDepthCheckbox;
 let densityValue, stepSizeValue, maxLengthValue, lineWidthValue;
+// Dots mode UI elements
+let dotSizeSlider, dotSpacingSlider, dotsPerLineSlider, spreadRadiusSlider;
+let dotSizeValue, dotSpacingValue, dotsPerLineValue, spreadRadiusValue;
 
 function getNumberInputValue(element, fallback, min = -Infinity, max = Infinity) {
     let val = parseFloat(element.value());
@@ -69,6 +79,7 @@ function setupControls() {
     select('#dataFile').changed(loadDataFile);
 
     // Store references to UI elements
+    renderModeSelect = select('#renderMode');
     densitySlider = select('#density');
     stepSizeSlider = select('#stepSize');
     maxLengthSlider = select('#maxLength');
@@ -77,11 +88,23 @@ function setupControls() {
     depthPowerSlider = select('#depthPower');
     invertDepthCheckbox = select('#invertDepth');
 
+    // Dots mode UI elements
+    dotSizeSlider = select('#dotSize');
+    dotSpacingSlider = select('#dotSpacing');
+    dotsPerLineSlider = select('#dotsPerLine');
+    spreadRadiusSlider = select('#spreadRadius');
+
     // Value display elements
     densityValue = select('#densityValue');
     stepSizeValue = select('#stepSizeValue');
     maxLengthValue = select('#maxLengthValue');
     lineWidthValue = select('#lineWidthValue');
+
+    // Dots mode value display elements
+    dotSizeValue = select('#dotSizeValue');
+    dotSpacingValue = select('#dotSpacingValue');
+    dotsPerLineValue = select('#dotsPerLineValue');
+    spreadRadiusValue = select('#spreadRadiusValue');
 
     // Update display values when sliders change (but don't generate)
     // Use throttled updates to reduce DOM manipulation frequency
@@ -103,6 +126,12 @@ function setupControls() {
     const updateMaxLength = createThrottledUpdater(maxLengthValue, (v) => parseInt(v));
     const updateLineWidth = createThrottledUpdater(lineWidthValue, (v) => parseFloat(v).toFixed(1));
 
+    // Dots mode updaters
+    const updateDotSize = createThrottledUpdater(dotSizeValue, (v) => parseFloat(v).toFixed(1));
+    const updateDotSpacing = createThrottledUpdater(dotSpacingValue, (v) => parseInt(v));
+    const updateDotsPerLine = createThrottledUpdater(dotsPerLineValue, (v) => parseInt(v));
+    const updateSpreadRadius = createThrottledUpdater(spreadRadiusValue, (v) => parseFloat(v).toFixed(1));
+
     // Use native DOM events for better performance
     densitySlider.elt.addEventListener('input', (e) => {
         updateDensity(e.target.value);
@@ -115,6 +144,20 @@ function setupControls() {
     });
     lineWidthSlider.elt.addEventListener('input', (e) => {
         updateLineWidth(e.target.value);
+    });
+
+    // Dots mode sliders
+    dotSizeSlider.elt.addEventListener('input', (e) => {
+        updateDotSize(e.target.value);
+    });
+    dotSpacingSlider.elt.addEventListener('input', (e) => {
+        updateDotSpacing(e.target.value);
+    });
+    dotsPerLineSlider.elt.addEventListener('input', (e) => {
+        updateDotsPerLine(e.target.value);
+    });
+    spreadRadiusSlider.elt.addEventListener('input', (e) => {
+        updateSpreadRadius(e.target.value);
     });
 
     // Reset button
@@ -147,6 +190,7 @@ function setupControls() {
 function updateParamsFromUI() {
     // Read all values from UI elements and update params
     // For sliders, use .value() method
+    params.renderMode = renderModeSelect.value();
     params.density = parseFloat(densitySlider.value());
     params.stepSize = parseFloat(stepSizeSlider.value());
     params.maxLength = parseInt(maxLengthSlider.value());
@@ -154,6 +198,12 @@ function updateParamsFromUI() {
     params.colorScheme = colorSchemeSelect.value();
     params.depthPower = getNumberInputValue(depthPowerSlider, params.depthPower, 0.01, 2.5);
     params.invertDepth = invertDepthCheckbox.elt.checked;
+
+    // Dots mode parameters
+    params.dotSize = parseFloat(dotSizeSlider.value());
+    params.dotSpacing = parseInt(dotSpacingSlider.value());
+    params.dotsPerLine = parseInt(dotsPerLineSlider.value());
+    params.spreadRadius = parseFloat(spreadRadiusSlider.value());
 }
 
 function loadDataFile() {
@@ -249,19 +299,38 @@ function renderFlowField() {
         return;
     }
 
-    // Draw streamlines
+    // Draw streamlines based on render mode
     for (let points of streamlines) {
-        drawStreamline(
-            points,
-            flowField,
-            params.colorScheme,
-            params.lineWidth,
-            params.smooth,
-            {
-                depthPower: params.depthPower,
-                invertDepth: params.invertDepth
-            }
-        );
+        if (params.renderMode === 'line') {
+            drawStreamline(
+                points,
+                flowField,
+                params.colorScheme,
+                params.lineWidth,
+                params.smooth,
+                {
+                    depthPower: params.depthPower,
+                    invertDepth: params.invertDepth
+                }
+            );
+        } else if (params.renderMode === 'dots') {
+            drawStreamlineAsDots(
+                points,
+                flowField,
+                params.colorScheme,
+                {
+                    dotSize: params.dotSize,
+                    dotSpacing: params.dotSpacing,
+                    dotsPerLine: params.dotsPerLine,
+                    spreadRadius: params.spreadRadius
+                },
+                params.smooth,
+                {
+                    depthPower: params.depthPower,
+                    invertDepth: params.invertDepth
+                }
+            );
+        }
     }
 }
 
@@ -280,6 +349,12 @@ function resetCanvas() {
 }
 
 function exportSVGForLaser() {
+    // Only support line mode for SVG export
+    if (params.renderMode !== 'line') {
+        alert('SVG export only supports Line mode. Please switch to Line mode and regenerate.');
+        return;
+    }
+
     console.log('Exporting SVG for laser engraving...');
 
     // Create SVG header with precise dimensions
